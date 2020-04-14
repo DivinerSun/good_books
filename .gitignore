@@ -1,0 +1,8 @@
+.vscode/
+.idea/
+**/__pycache__
+venv/
+
+good_books/local_settings.py
+platforms/migrations/*.py
+!platforms/migrations/__init__.py
