@@ -1,0 +1,18 @@
+.register {
+    width: 600px;
+    margin: 120px auto;
+    padding: 10px;
+    border: 1px solid #c33879;
+    border-radius: 10px;
+    box-shadow: 5px 5px 3px #c33879;
+}
+
+.register h1 {
+    text-align: center;
+    color: #c33879;
+}
+
+.error-msg {
+    color: #ff5500;
+    position: absolute;
+}

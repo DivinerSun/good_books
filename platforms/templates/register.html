@@ -1,0 +1,98 @@
+{% extends 'layout/basic.html' %} {% load static %} {% block title %} 用户注册
+{% endblock %} {% block css %}
+<link rel="stylesheet" href="{% static 'css/user.css' %}" />
+{% endblock %} {% block content %}
+<div class="container register">
+    <h1>用户注册</h1>
+    <form>
+        {% for item in form %} {% if item.name == 'code' %}
+        <div class="form-group">
+            <label for="{{ item.id_for_label }}">{{ item.label }}</label>
+            <div style="display: flex;">
+                <div style="padding-left: 0;" class="col-md-8">
+                    {{ item }}<span class="error-msg"></span>
+                </div>
+                <div class="col-md-4" style="padding: 0;">
+                    <input
+                        id="btnSms"
+                        style="
+                            width: 100%;
+                            color: #c33879;
+                            border: 1px solid #c33879;
+                            border-radius: 8px;
+                        "
+                        type="button"
+                        value="获取验证码"
+                        class="btn btn-default"
+                    />
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="form-group">
+            <label for="{{ item.id_for_label }}">{{ item.label }}</label>
+            {{ item }}
+            <span class="error-msg"></span>
+        </div>
+        {% endif %} {% endfor %}
+        <button
+            type="submit"
+            class="btn btn-primary btn-block"
+            style="background: #c33879; border: none;"
+        >
+            注 册
+        </button>
+    </form>
+</div>
+{% endblock %} {% block js %}
+<script>
+    $(function () {
+        handleGetCodeClick();
+    });
+
+    function handleGetCodeClick() {
+        $('#btnSms').click(function () {
+            // 置空所有错误信息
+            $('.error-msg').empty();
+
+            // 获取用户手机号
+            const phoneNumber = $('#id_mobile_phone').val();
+
+            $.ajax('{% url 'sms_send' %}', {  // 等价于 /sms/send/
+                method: 'GET',
+                dataType: 'JSON',
+                data: {
+                    mobile_phone: phoneNumber,
+                    sms_type: 'register'
+                },
+                success: function (res) {
+                    console.log('res', res);
+                    if (res.status) {
+                        sendSmsTimer();
+                    } else {
+                        $.each(res.error, function (key, value) {
+                            $('#id_' + key).next().text(value)
+                        })
+                    }
+                }
+            })
+        })
+    }
+
+    // 获取验证码倒计时
+    function sendSmsTimer() {
+        const smsBtn = $('#btnSms');
+        smsBtn.prop('disabled', true);
+
+        let time = 60;
+        const timer = setInterval(function () {
+            smsBtn.val(time + ' 秒后重新发送');
+            time = time - 1;
+            if (time < 1) {
+                clearInterval(timer);
+                smsBtn.val('获取验证码').prop('disabled', false);
+            }
+        }, 1000)
+    }
+</script>
+{% endblock %}
