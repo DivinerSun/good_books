@@ -26,5 +26,17 @@ def register(request):
     :param request:
     :return:
     """
-    form = RegisterModelForm()
-    return render(request, 'register.html', {'form': form})
+    if request.method == 'GET':
+        form = RegisterModelForm()
+        return render(request, 'register.html', {'form': form})
+
+    form = RegisterModelForm(data=request.POST)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({'status': True, 'msg': '用户注册成功', 'data': '/login/'})
+    return JsonResponse({'status': False, 'msg': '用户注册失败', 'error': form.errors})
+
+
+def login(request):
+    """ 用户登录 """
+    return render(request, 'login.html', {'type': 'login'})

@@ -8,14 +8,31 @@ from django_redis import get_redis_connection
 import random
 from platforms.models import AccountInfo
 from utils.sms import send_sms_single
+from utils.encrypt import md5
 
 
 class RegisterModelForm(forms.ModelForm):
     username = forms.CharField(label='用户名', widget=forms.TextInput())
     email = forms.CharField(label='邮箱', widget=forms.EmailInput())
-    password = forms.CharField(label='密码', widget=forms.PasswordInput())
+    password = forms.CharField(
+        label='密码',
+        min_length=6,
+        max_length=32,
+        error_messages={
+            'min_length': '密码长度不能小于6位',
+            'max_length': '密码长度不能大于32位'
+        },
+        widget=forms.PasswordInput()
+    )
     confirm_password = forms.CharField(
-        label='确认密码', widget=forms.PasswordInput())
+        label='确认密码',
+        min_length=6,
+        max_length=32,
+        error_messages={
+            'min_length': '确认密码长度不能小于6位',
+            'max_length': '确认密码长度不能大于32位'
+        },
+        widget=forms.PasswordInput())
     mobile_phone = forms.CharField(
         label='手机号',
         validators=[RegexValidator(r'^(1[3|4|5|6|7|8|9])\d{9}$', '手机号格式错误')]
@@ -32,6 +49,51 @@ class RegisterModelForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
             field.widget.attrs['class'] = 'form-control'
+
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        is_exists = AccountInfo.objects.filter(username=username).exists()
+        if is_exists:
+            raise ValidationError('用户名已经存在')
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        is_exists = AccountInfo.objects.filter(email=email).exists()
+        if is_exists:
+            raise ValidationError('邮箱已经存在')
+        return email
+
+    def clean_password(self):
+        password = self.cleaned_data['password']
+        return md5(password)
+
+    def clean_confirm_password(self):
+        confirm_password = self.cleaned_data['confirm_password']
+        password = self.data.get('password')
+        if confirm_password != password:
+            raise ValidationError('两次密码不一致')
+        return confirm_password
+
+    def clean_mobile_phone(self):
+        mobile_phone = self.cleaned_data['mobile_phone']
+        is_exists = AccountInfo.objects.filter(mobile_phone=mobile_phone).exists()
+        if is_exists:
+            raise ValidationError('当前手机号已被注册')
+        return mobile_phone
+
+    def clean_code(self):
+        code = self.cleaned_data['code']
+
+        mobile_phone = self.data.get('mobile_phone')
+
+        conn = get_redis_connection()
+        cache_code = conn.get(mobile_phone)
+        if not cache_code:
+            raise ValidationError('验证码已过期，请重新获取')
+        if code.strip() != cache_code.decode('utf-8'):
+            raise ValidationError('验证码错误')
+        return code
 
 
 class SmsSendForm(forms.Form):
